@@ -1,5 +1,7 @@
 """
-Маленький тест на анализ строки сигнала
+Конечный автомат получения серий из списка
+Входные данные - строка типа '001111022'
+результат работы - определен список серий сигнала и паузы. Пауза - это 0 или несколько, сигнал - все остальные цифры
 """
 from transitions import Machine
 import enum
@@ -86,7 +88,6 @@ for i, t in enumerate(test):
         ka.add_series(end=True)
     ka.inc()
 
-# print(ka.series)
 print(f'[red]{test_string}[/red] ({len(test_string)})')
 print(' #  Сигнал   С  По Длина  Серия')
 for i, s in enumerate(ka.series):
