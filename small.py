@@ -14,6 +14,7 @@ class States(enum.Enum):
     SIGNAL = 1
     NULLS = 2
 
+# Только для печати
 signal_name = {States.BEGIN: 'B', States.PAUSE: 'P', States.SIGNAL: 'S', States.NULLS: 'N', }
 
 
@@ -27,6 +28,7 @@ class SignalString(object):
 
     def ser(self, end: bool = False):
         e = self.i - (0 if end else 1)
+
         return {
             'type': self.type_signal,
             'start': self.begin,
@@ -38,7 +40,7 @@ class SignalString(object):
         self.series.append(self.ser(end))
 
     def inc(self):
-        # сдвиг позиции
+        # сдвиг текущей позиции символа
         self.i += 1
 
     def set_begin(self):
