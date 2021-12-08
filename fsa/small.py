@@ -20,13 +20,13 @@ signal_name = {States.BEGIN: 'B', States.PAUSE: 'P', States.SIGNAL: 'S', States.
 
 class SignalString(object):
     def __init__(self, s: list[int]):
-        # self.s = s  # серия
+        self.s = s  # серия - пока не используется
         self.i = 0  # позиция в серии
         self.type_signal = None
         self.begin = 0  # начало серии
         self.series = []
 
-    def ser(self, end: bool = False):
+    def _ser(self, end: bool = False):
         e = self.i - (0 if end else 1)
 
         return {
@@ -37,7 +37,7 @@ class SignalString(object):
         }
 
     def add_series(self, end: bool = False):
-        self.series.append(self.ser(end))
+        self.series.append(self._ser(end))
 
     def inc(self):
         # сдвиг текущей позиции символа
