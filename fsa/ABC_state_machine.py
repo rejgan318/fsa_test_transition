@@ -1,65 +1,85 @@
 """ Простейший конечный автомат """
-from transitions import Machine, State
 from enum import Enum, auto
-import logging
-import time
 
-class AbcClass(object):
-    def __init__(self):
-        self.symbol = 'а'
-
-    def input(self):
-        self.symbol = input('Один символ и Enter (Q - выход):')
-        self.symbol = self.symbol[0]
-
-    def output(self):
-        print(f'Обработан символ {self.symbol=}')
-        if self.symbol == 'q':
-            self.finish()
-
-    def c_upper(self):
-        return self.symbol[0].isupper()
-
-    def tolower(self):
-        print(f'Уменьшаем "{self.symbol}" -> "{self.symbol.lower()}"')
-        self.symbol = self.symbol.lower()
-
-    def poll(self):
-        while not abc_o.is_FINISH():
-            trs = abc_m.get_triggers(abc_o.state)
-            print(f'Текущее состояние {abc_o.state=}, переход {trs[0]}')
-            abc_o.trigger(trs[0])
-            # time.sleep(0.2)
+# import logging
+from loguru import logger
+from transitions import Machine
 
 
 class States(Enum):
     INIT = auto()
-    INPUT = auto()
-    PROCESS = auto()
-    UPPER = auto()
-    OUTPUT = auto()
-    FINISH = auto()
+    s001Begin = auto()
+    s010GetData = auto()
+    s020Analize = auto()
+    s030SaveSeries = auto()
+    s999Finish = auto()
+
+
+class Fsa(object):
+
+    def __init__(self, signal):
+
+        self.signal = signal
+        self.i = -1  # позиция входных данных
+        self.x = None  # текущий элемент данных
+        self.n = len(signal)
+        self.last_item = self.n - 1
+        self.result = []
+
+        self.machine = Machine(model=self, states=States, initial=States.s001Begin,
+                               ignore_invalid_triggers=True, auto_transitions=False)
+        self.machine.add_transition('t000', States.INIT, States.s001Begin)
+        self.machine.add_transition('t001', States.s001Begin, States.s010GetData)
+        self.machine.add_transition('t010', States.s010GetData, States.s999Finish, conditions=self.nodata)
+        self.machine.add_transition('t010', States.s010GetData, States.s020Analize)
+        self.machine.add_transition('t020', States.s020Analize, States.s030SaveSeries, conditions=self.needsave)
+        self.machine.add_transition('t020', States.s020Analize, States.s010GetData)
+        self.machine.add_transition('t030', States.s030SaveSeries, States.s010GetData)
+
+        self.machine.on_enter_s010GetData(self.get_data)
+        self.machine.on_enter_s030SaveSeries(self.save_series)
+
+        self.poll()
+
+    def get_data(self):
+        self.i += 1     # для первого раза будет 0, т.к. при инициализации = -1
+        self.x = self.signal[self.i] if self.i < self.n else None
+
+    def nodata(self):
+        return self.i == self.n
+
+    def needsave(self):
+        return not self.x == 0
+
+    def save_series(self):
+        self.result.append(self.x)
+
+    def poll(self):
+        """
+        Основной движок. По единожды построенной таблице переходов сделать переход для текущего состояния.
+        Используется только первое имя перехода, чтобы сиключить попутку перехода по служебным, сгенерированным,
+        типа на себя. Отсяда условия - прописывать переходы для состояния только с одним именем и разными conditional
+        Переходы без условий располагаются последними
+        """
+        # словарь переходов для всех состояний
+        trs = {st: self.machine.get_triggers(st) for st in States}
+
+        while not self.is_s999Finish():
+            logger.info(f'{self.state.name:15} --> {trs[self.state][0]} ({len(trs[self.state])})')
+            self.trigger(trs[self.state][0])
+
+        return self.result
 
 
 if __name__ == '__main__':
 
-    # logging.basicConfig(level=logging.DEBUG)
-    logging.basicConfig(level=logging.WARNING)
-    abc_o = AbcClass()
-    abc_m = Machine(model=abc_o, states=States, initial=States.INIT,
-                    ignore_invalid_triggers=True, auto_transitions=False)
-    abc_m.add_transition('ii', States.INIT, States.INPUT)
-    abc_m.add_transition('ip', States.INPUT, States.PROCESS)
-    abc_m.add_transition('po', States.PROCESS, States.UPPER, conditions='c_upper')
-    abc_m.add_transition('po', States.PROCESS, States.OUTPUT)
-    abc_m.add_transition('uo', States.UPPER, States.OUTPUT)
-    abc_m.add_transition('oi', States.OUTPUT, States.INPUT)
-    abc_m.add_transition('finish', '*', States.FINISH)
-    abc_m.on_enter_INPUT('input')
-    abc_m.on_enter_OUTPUT('output')
-    abc_m.on_enter_UPPER('tolower')
+    def get_test_list(test_string: str) -> list[int]:
+        return [int(s) if s.isdigit() else 0 for s in list(test_string)]
 
-    abc_o.ii()
-    abc_o.poll()
+    # logging.basicConfig(level=logging.INFO)
+    # todo настраиваемы логгер от loggin или loguru
+    # todo список строка?
+    # todo тесты
 
-    print('Done.')
+    result = Fsa(get_test_list('4_5__'))
+    print(f'Done, {result.result=}')

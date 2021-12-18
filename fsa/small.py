@@ -1,5 +1,6 @@
 """
 Конечный автомат получения серий из списка
+v 2. - правильная реализация машины состояний
 Входные данные - строка типа '001111022'
 результат работы - определен список серий сигнала и паузы. Пауза - это 0 или несколько, сигнал - все остальные цифры
 """
@@ -9,10 +10,12 @@ from rich import print
 
 
 class States(enum.Enum):
-    BEGIN = -1
-    PAUSE = 0
-    SIGNAL = 1
-    NULLS = 2
+    BEGIN = enum.auto()
+    PAUSE = enum.auto()
+    SIGNAL = enum.auto()
+    NULLS = enum.auto()
+    FINISH = enum.auto()
+
 
 # Только для печати
 signal_name = {States.BEGIN: 'B', States.PAUSE: 'P', States.SIGNAL: 'S', States.NULLS: 'N', }
