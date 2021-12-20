@@ -1,19 +1,23 @@
 """ Простейший конечный автомат """
 from enum import Enum, auto
 
-# import logging
+import logging
 from loguru import logger
 from transitions import Machine
 
 
 class States(Enum):
-    INIT = auto()
     s001Begin = auto()
     s010GetData = auto()
     s020Analize = auto()
     s030SaveSeries = auto()
     s999Finish = auto()
 
+
+class Signal(Enum):
+    SIGNAL = auto()
+    PAUSE = auto()
+    NULL = auto()
 
 class Fsa(object):
 
@@ -23,12 +27,14 @@ class Fsa(object):
         self.i = -1  # позиция входных данных
         self.x = None  # текущий элемент данных
         self.n = len(signal)
+        self.early: Signal = None   # тип сигнала на прошлом шаге
+        self.current: Signal = None   # тип сигнала на текущем шаге
+
         self.last_item = self.n - 1
         self.result = []
 
         self.machine = Machine(model=self, states=States, initial=States.s001Begin,
-                               ignore_invalid_triggers=True, auto_transitions=False)
-        self.machine.add_transition('t000', States.INIT, States.s001Begin)
+                               auto_transitions=False)
         self.machine.add_transition('t001', States.s001Begin, States.s010GetData)
         self.machine.add_transition('t010', States.s010GetData, States.s999Finish, conditions=self.nodata)
         self.machine.add_transition('t010', States.s010GetData, States.s020Analize)
@@ -43,7 +49,12 @@ class Fsa(object):
 
     def get_data(self):
         self.i += 1     # для первого раза будет 0, т.к. при инициализации = -1
-        self.x = self.signal[self.i] if self.i < self.n else None
+        if self.i == self.n:    # данных больше нет
+            self.x = None
+            return
+        self.x = self.signal[self.i]
+        self.early = self.current
+        self.current = Signal.SIGNAL if self.x else Signal.NULL
 
     def nodata(self):
         return self.i == self.n
@@ -72,13 +83,14 @@ class Fsa(object):
 
 
 if __name__ == '__main__':
+    import sys
 
     def get_test_list(test_string: str) -> list[int]:
         return [int(s) if s.isdigit() else 0 for s in list(test_string)]
 
+    logger.remove()
+    logger.add(sys.stdout, level='INFO')
     # logging.basicConfig(level=logging.INFO)
-    # todo настраиваемы логгер от loggin или loguru
-    # todo список строка?
     # todo тесты
 
     result = Fsa(get_test_list('4_5__'))
